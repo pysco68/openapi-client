@@ -87,7 +87,7 @@ serviceGateway.init({
 function getAuthorization(security) {
   switch (security.id) {
     case 'account': return getAccountToken(security);
-    // case 'api_key': return getApiKey(security); // Or any other securityDefinitions from your OpenAPI spec
+    // case 'api_key': return getApiKey(security); // Or any other securitySchemes from your OpenAPI spec
     default: throw new Error(`Unknown security type '${security.id}'`)
   }
 };
@@ -126,7 +126,7 @@ export interface ServiceOptions {
    * the OpenAPI defined security requirements of the operation to be executed.
    */
   getAuthorization?: (security: OperationSecurity, 
-                      securityDefinitions: any,
+                      securitySchemes: any,
                       op: OperationInfo) => Promise<OperationRightsInfo>${ST}
   /**
    * Given an error response, custom format and return a ServiceError

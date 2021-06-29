@@ -7,7 +7,7 @@ describe('spec', () => {
     expect(spec).toExist()
     expect(spec.host).toBe('petstore.swagger.io')
     expect(spec.basePath).toBe('/v2')
-    expect(spec.securityDefinitions).toExist()
+    expect(spec.securitySchemes).toExist()
     expect(spec.definitions).toExist()
     expect(spec.paths).toExist()
   })

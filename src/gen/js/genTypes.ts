@@ -109,7 +109,7 @@ function renderTsDefaultTypes() {
   schemes: string[]${ST}
   contentTypes: string[]${ST}
   accepts: string[]${ST}
-  securityDefinitions?: {[key: string]: SecurityDefinition}${ST}
+  securitySchemes?: {[key: string]: SecurityDefinition}${ST}
 }
 
 export interface SecurityDefinition {
@@ -185,7 +185,7 @@ export interface ServiceOptions {
    * Function which should resolve rights for a request (e.g auth token) given
    * the OpenAPI defined security requirements of the operation to be executed.
    */
-  getAuthorization?: (security: OperationSecurity, securityDefinitions: any, op: OperationInfo) => Promise<OperationRightsInfo>${ST}
+  getAuthorization?: (security: OperationSecurity, securitySchemes: any, op: OperationInfo) => Promise<OperationRightsInfo>${ST}
   /**
    * Given an error response, custom format and return a ServiceError
    */

@@ -21,7 +21,7 @@ function renderSpecView(spec: OpenAPIObject, options: ClientOptions): string {
     basePath: spec.basePath,
     contentTypes: spec.contentTypes,
     accepts: spec.accepts,
-    securityDefinitions: spec.securityDefinitions
+    securitySchemes: spec.components.securitySchemes
   }
   const type = (options.language === 'ts') ? ': api.OpenApiSpec' : ''
   return `${options.language === 'ts' ? '/// <reference path="../types.ts"/>': ''}
