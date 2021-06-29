@@ -1,7 +1,7 @@
 import { writeFileSync, join, groupOperationsByGroupName, camelToUppercase, getBestResponse } from '../util'
 import { DOC, SP, ST, getDocType, getTSParamType } from './support'
-import { OpenAPIObject, OperationObject, ParameterObject, SecurityRequirementObject, SchemaObject } from 'openapi3-ts'
-import { getReference, isParamRequired, isReferenceObject } from './helpers'
+import { OpenAPIObject, OperationObject, ParameterObject, SecurityRequirementObject, SchemaObject, RequestBodyObject } from 'openapi3-ts'
+import { getRequestBodyObject, getReference, isParamRequired, isReferenceObject, isRequestBodyObject } from './helpers'
 
 export default function genOperations(spec: OpenAPIObject, operations: OperationObject[], options: ClientOptions) {
   const files = genOperationGroupFiles(spec, operations, options)
@@ -37,6 +37,7 @@ function renderHeader(name: string, spec: OpenAPIObject, options: ClientOptions)
   lines.push(`/** @module ${name} */`)
   lines.push(`// Auto-generated, edits will be overwritten`)
   lines.push(`import * as gateway from './gateway'${ST}`)
+  lines.push(`import * as types from './types'${ST}`)
   lines.push('')
   return lines
 }
@@ -70,13 +71,12 @@ function renderDocDescription(op: OperationObject) {
 
 function renderDocParams(spec: OpenAPIObject, op: OperationObject) {
   const params = op.parameters
-  if (!params.length) return []
-
+  
   const required = params.filter(param => isParamRequired(spec, param))
   const optional = params.filter(param => !isParamRequired(spec, param))
-
   const lines = []
-  join(lines, required.map(renderDocParam))
+  
+  join(lines, required.map(renderDocParam))  
   if (optional.length) {
     lines.push(`${DOC}@param {object} options Optional options`)
     join(lines, optional.map(renderDocParam))
@@ -84,6 +84,12 @@ function renderDocParams(spec: OpenAPIObject, op: OperationObject) {
   if (op.description || op.summary) {
     lines.unshift(DOC)
   }
+  
+  // we have a body to send as well...
+  if(op.requestBody) {
+    lines.push(`${DOC}@param {${op.id}_request} body`)
+  }
+  
   lines.push(renderDocReturn(op))
   return lines
 }
@@ -106,7 +112,7 @@ function renderDocReturn(op:OperationObject): string {
   const response = getBestResponse(op)
   let description = response ? response.description || '' : ''
   description = description.trim().replace(/\n/g, `\n${DOC}${SP}`)
-  return `${DOC}@return {Promise<${getDocType(response)}>} ${description}`
+  return `${DOC}@return {Promise<${op.id}_response>} ${description}`
 }
 
 function renderOperationBlock(spec: OpenAPIObject, op: OperationObject, options: ClientOptions): string[] {
@@ -127,8 +133,8 @@ function renderOperationSignature(spec: OpenAPIObject, op: OperationObject, opti
 export function renderParamSignature(spec: OpenAPIObject, op: OperationObject, options: ClientOptions, pkg?: string): string {
   //const params = op.parameters
 
-  const required = Array<ParameterObject|SchemaObject>();
-  const optional = Array<ParameterObject|SchemaObject>();
+  const required = Array<ParameterObject|SchemaObject|RequestBodyObject>();
+  const optional = Array<ParameterObject|SchemaObject|RequestBodyObject>();
 
   for(const param of op.parameters) {
     if(isReferenceObject(param)) {
@@ -145,6 +151,13 @@ export function renderParamSignature(spec: OpenAPIObject, op: OperationObject, o
         optional.push(param);
     }
   }
+
+  // check if we have a body to send
+  if(op.requestBody) {
+    const resolved = getRequestBodyObject(spec, op.requestBody)
+    required.push(resolved)
+  }  
+
   //const required = params.filter(param => param.required)
   //const optional = params.filter(param => !param.required)
   const funcParams = renderRequiredParamsSignature(required, options)
@@ -154,14 +167,14 @@ export function renderParamSignature(spec: OpenAPIObject, op: OperationObject, o
   return funcParams.map(p => p.join(': ')).join(', ')
 }
 
-function renderRequiredParamsSignature(required: (ParameterObject|SchemaObject)[], options: ClientOptions): string[][] {
+function renderRequiredParamsSignature(required: (ParameterObject|SchemaObject|RequestBodyObject)[], options: ClientOptions): string[][] {
   return required.reduce<string[][]>((a, param) => {
     a.push(getParamSignature(param, options))
     return a
   }, [])
 }
 
-function renderOptionalParamsSignature(op: OperationObject, optional: (ParameterObject|SchemaObject)[], options: ClientOptions, pkg?: string) {
+function renderOptionalParamsSignature(op: OperationObject, optional: (ParameterObject|SchemaObject|RequestBodyObject)[], options: ClientOptions, pkg?: string) {
   if (!optional.length) return []
   if (!pkg) pkg = ''
   const s = options.language === 'ts' ? '?' : ''
@@ -176,10 +189,15 @@ function renderReturnSignature(op: OperationObject, options: ClientOptions): str
   return `: Promise<api.Response<${getTSParamType(response)}>>`
 }
 
-function getParamSignature(param: ParameterObject|SchemaObject, options: ClientOptions): string[] {
-  const signature = [getParamName(param.name)]
-  if (options.language === 'ts') signature.push(getTSParamType(param))
-  return signature
+function getParamSignature(param: ParameterObject|SchemaObject|RequestBodyObject, options: ClientOptions): string[] {
+  if(isRequestBodyObject(param)) {
+    return ['body'];  // there's just one name for that...
+  }
+  else {
+    const signature = [getParamName(param.name)]
+    if (options.language === 'ts') signature.push(getTSParamType(param))
+    return signature
+  }
 }
 
 export function getParamName(name: string): string {
@@ -238,10 +256,19 @@ function renderOperationObject(spec: OpenAPIObject, op: OperationObject, options
 
   const parameters = op.parameters.reduce(groupParams, {})
   const names = Object.keys(parameters)
-  const last = names.length - 1
+  var last = names.length - 1
+
+  // if we have to append the body property we actually need to append the , separator on every iteration
+  // so we flip that logic to alway be false...
+  if(op.requestBody) last = -1;  
+
   names.forEach((name, i) => {
     join(lines, renderParamGroup(name, parameters[name], i === last))
   })
+
+  if(op.requestBody) {
+    lines.push(`${SP}${SP}body: body`);
+  }
 
   if (lines.length) {
     if (options.language === 'ts') {
@@ -286,8 +313,8 @@ function renderParamGroup(name: string, groupLines: string[], last: boolean): st
   return lines
 }
 
-function renderRequestCall(op: OperationObject, options: ClientOptions) {
-  const params = op.parameters.length ? ', parameters': ''
+function renderRequestCall(op: OperationObject, options: ClientOptions) { 
+  const params = (op.parameters.length || op.requestBody) ? ', parameters': ''
   return [ `${SP}return gateway.request(${op.id}Operation${params})${ST}`, '}' ]
 }
 
