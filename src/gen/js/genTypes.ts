@@ -1,12 +1,13 @@
 import { writeFileSync, join } from '../util'
 import { DOC, SP, ST, getDocType, getTSParamType, formatDocDescription } from './support'
+import { OpenAPIObject } from 'openapi3-ts'
 
-export default function genTypes(spec: ApiSpec, options: ClientOptions) {
+export default function genTypes(spec: OpenAPIObject, options: ClientOptions) {
   const file = genTypesFile(spec, options)
   writeFileSync(file.path, file.contents)
 }
 
-export function genTypesFile(spec: ApiSpec, options: ClientOptions) {
+export function genTypesFile(spec: OpenAPIObject, options: ClientOptions) {
   const lines = []
   join(lines, renderHeader())
   join(lines, renderDefinitions(spec, options))
@@ -24,9 +25,9 @@ function renderHeader() {
   return lines
 }
 
-function renderDefinitions(spec: ApiSpec, options: ClientOptions): string[] {
+function renderDefinitions(spec: OpenAPIObject, options: ClientOptions): string[] {
   const isTs = (options.language === 'ts')
-  const defs = spec.definitions || {}
+  const defs = spec.components.schemas || {}
   const typeLines = isTs ? [`namespace api {`] : undefined
   const docLines = []
   Object.keys(defs).forEach(name => {
@@ -102,7 +103,7 @@ function renderTsTypeProp(prop: string, info: any, required: boolean): string[] 
 }
 
 function renderTsDefaultTypes() {
-  return `export interface OpenApiSpec {
+  return `export interface OpenOpenAPIObject {
   host: string${ST}
   basePath: string${ST}
   schemes: string[]${ST}

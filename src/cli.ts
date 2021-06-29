@@ -3,6 +3,7 @@
 import * as program from 'commander'
 import * as chalk from 'chalk'
 import { genCode } from './index'
+import { OpenAPIObject } from 'openapi3-ts'
 
 const args: any = program
   .version(require('../package.json').version)
@@ -14,9 +15,11 @@ const args: any = program
   .option('--indent <2|4|tab>', 'Indentation to use, defaults to 2 spaces', process.env.OPEN_API_INDENT)
   .parse(process.argv)
 
-genCode(args).then(complete, error)
+const options = program.opts();
 
-function complete(spec: ApiSpec) {
+genCode(options).then(complete, error)
+
+function complete(spec: OpenAPIObject) {
   console.info(chalk.bold.cyan(`Api ${args.src} code generated into ${args.outDir}`))
   process.exit(0)
 }

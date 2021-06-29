@@ -1,4 +1,5 @@
 import * as YAML from 'js-yaml'
+import { OpenAPIObject, OperationObject } from 'openapi3-ts'
 
 export interface SpecOptions {
   /**
@@ -7,22 +8,20 @@ export interface SpecOptions {
    ignoreRefType?: string
 }
 
-export function resolveSpec(src: string | Object, options?: SpecOptions): Promise<ApiSpec> {
+export function resolveSpec(src: string | Object, options?: SpecOptions): Promise<OpenAPIObject> {
   if (!options) options = {}
   if (typeof src === 'string') {
     return loadJson(src).then(spec => formatSpec(spec, src, options))
   } else {
-    return Promise.resolve(formatSpec(<ApiSpec> src, null, options))
+    return Promise.resolve(formatSpec(<OpenAPIObject> src, null, options))
   }
 }
 
-function loadJson(src: string): Promise<ApiSpec> {
+function loadJson(src: string): Promise<OpenAPIObject> {
   if (/^https?:\/\//im.test(src)) {
-    return fetch(src)
-      .then(response => response.json())
+    return fetch(src).then(response => response.json())
   } else if (String(process) === '[object process]') {
-    return readFile(src)
-      .then(contents => parseFileContents(contents, src))
+    return readFile(src).then(contents => parseFileContents(contents, src))
   } else {
     throw new Error(`Unable to load api at '${src}'`)
   }
@@ -34,13 +33,13 @@ function readFile(filePath: string): Promise<string> {
       err ? rej(err) : res(contents)))
 }
 
-function parseFileContents(contents: string, path: string): Object {
+function parseFileContents(contents: string, path: string): OpenAPIObject {
   return /.ya?ml$/i.test(path)
-    ? YAML.safeLoad(contents)
-    : JSON.parse(contents)
+    ? YAML.safeLoad(contents) as OpenAPIObject
+    : JSON.parse(contents) as OpenAPIObject
 }
 
-function formatSpec(spec: ApiSpec, src?: string, options?: SpecOptions): ApiSpec {
+function formatSpec(spec: OpenAPIObject, src?: string, options?: SpecOptions): OpenAPIObject {
   if (!spec.basePath) spec.basePath = ''
   else if (spec.basePath.endsWith('/')) spec.basePath = spec.basePath.slice(0, -1)
 
@@ -66,7 +65,7 @@ function formatSpec(spec: ApiSpec, src?: string, options?: SpecOptions): ApiSpec
   delete s.consumes
   delete s.produces
 
-  return <ApiSpec>expandRefs(spec, spec, options)
+  return <OpenAPIObject>expandRefs(spec, spec, options)
 }
 
 /**

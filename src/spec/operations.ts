@@ -1,3 +1,5 @@
+import { OpenAPIObject, OperationObject, ResponseObject, SecurityRequirementObject } from 'openapi3-ts'
+
 const SUPPORTED_METHODS = [
   'get',
   'put',
@@ -8,18 +10,18 @@ const SUPPORTED_METHODS = [
   'patch'
 ]
 
-export function getOperations(spec: ApiSpec): ApiOperation[] {
+export function getOperations(spec: OpenAPIObject): OperationObject[] {
   return getPaths(spec)
-    .reduce<ApiOperation[]>((ops, pathInfo) =>
+    .reduce<OperationObject[]>((ops, pathInfo) =>
       ops.concat(getPathOperations(pathInfo, spec)), [])
 }
 
-function getPaths(spec: ApiSpec): Object[] {
+function getPaths(spec: OpenAPIObject): Object[] {
   return Object.keys(spec.paths || {})
     .map(path => Object.assign({ path }, spec.paths[path]))
 }
 
-function getPathOperations(pathInfo, spec): ApiOperation[] {
+function getPathOperations(pathInfo, spec): OperationObject[] {
   return Object.keys(pathInfo)
     .filter(key => !!~SUPPORTED_METHODS.indexOf(key))
     .map(method => getPathOperation(<HttpMethod> method, pathInfo, spec))
@@ -36,7 +38,7 @@ function inheritPathParams(op, spec, pathInfo) {
   }
 }
 
-function getPathOperation(method: HttpMethod, pathInfo, spec: ApiSpec): ApiOperation {
+function getPathOperation(method: HttpMethod, pathInfo, spec: OpenAPIObject): OperationObject {
   const op = Object.assign({ method, path: pathInfo.path, parameters: [] }, pathInfo[method])
   op.id = op.operationId
 
@@ -62,7 +64,7 @@ function getPathOperation(method: HttpMethod, pathInfo, spec: ApiSpec): ApiOpera
 
   if (!op.contentTypes || !op.contentTypes.length) op.contentTypes = spec.contentTypes.slice()
   if (!op.accepts || !op.accepts.length) op.accepts = spec.accepts.slice()
-  return <ApiOperation> op
+  return <OperationObject> op
 }
 
 function getOperationGroupName(op: any): string {
@@ -71,7 +73,7 @@ function getOperationGroupName(op: any): string {
   return name.replace(/^[0-9]+/m, '')
 }
 
-function getOperationResponses(op: any): ApiOperationResponse[] {
+function getOperationResponses(op: any): ResponseObject[] {
   return Object.keys(op.responses || {}).map(code => {
     const info = op.responses[code]
     info.code = code
@@ -79,7 +81,7 @@ function getOperationResponses(op: any): ApiOperationResponse[] {
   })
 }
 
-function getOperationSecurity(op: any, spec: any): ApiOperationSecurity[] {
+function getOperationSecurity(op: OperationObject, spec: OpenAPIObject): SecurityRequirementObject[] {
   let security
 
   if (op.security && op.security.length) {

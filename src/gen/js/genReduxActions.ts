@@ -1,13 +1,15 @@
 import { writeFileSync, join, groupOperationsByGroupName, camelToUppercase, getBestResponse } from '../util'
 import { DOC, SP, ST, getDocType, getTSParamType } from './support'
 import { renderParamSignature, renderOperationGroup, getParamName } from './genOperations'
+import { OpenAPIObject, OperationObject } from 'openapi3-ts'
+import { getReference, isParamRequired, getParameter } from './helpers'
 
-export default function genReduxActions(spec: ApiSpec, operations: ApiOperation[], options: ClientOptions) {
+export default function genReduxActions(spec: OpenAPIObject, operations: OperationObject[], options: ClientOptions) {
   const files = genReduxActionGroupFiles(spec, operations, options)
   files.forEach(file => writeFileSync(file.path, file.contents))
 }
 
-export function genReduxActionGroupFiles(spec: ApiSpec, operations: ApiOperation[], options: ClientOptions) {
+export function genReduxActionGroupFiles(spec: OpenAPIObject, operations: OperationObject[], options: ClientOptions) {
   const groups = groupOperationsByGroupName(operations)
   const files = []
   for (let name in groups) {
@@ -23,7 +25,7 @@ export function genReduxActionGroupFiles(spec: ApiSpec, operations: ApiOperation
   return files
 }
 
-function renderHeader(name: string, spec: ApiSpec, options: ClientOptions): string {
+function renderHeader(name: string, spec: OpenAPIObject, options: ClientOptions): string {
 
   const code = `
 ${options.language === 'ts' && spec.definitions ? '/// <reference path="../types.ts"/>': ''}
@@ -34,16 +36,18 @@ import * as ${name} from '../${name}'${ST}
   return code
 }
 
-function renderReduxActionBlock(spec: ApiSpec, op: ApiOperation, options: ClientOptions): string {
+function renderReduxActionBlock(spec: OpenAPIObject, op: OperationObject, options: ClientOptions): string {
   const lines = []
   const isTs = options.language === 'ts'
   const actionStart = camelToUppercase(op.id) + '_START'
   const actionComplete = camelToUppercase(op.id)
   const infoParam = isTs ? 'info?: any' : 'info'
-  let paramSignature = renderParamSignature(op, options, `${op.group}.`)
+  let paramSignature = renderParamSignature(spec, op, options, `${op.group}.`)
   paramSignature += `${paramSignature ? ', ' : ''}${infoParam}`
-  const required = op.parameters.filter(param => param.required)
-  let params = required.map(param => getParamName(param.name)).join(', ')
+
+  const required = op.parameters.filter(param => isParamRequired(spec, param))
+  let params = required.map(param => getParamName(getParameter(spec, param).name)).join(', ')
+
   if (required.length < op.parameters.length) {
     if (required.length) params += ', options'
     else params = 'options'

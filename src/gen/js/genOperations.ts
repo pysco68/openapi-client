@@ -1,44 +1,14 @@
 import { writeFileSync, join, groupOperationsByGroupName, camelToUppercase, getBestResponse } from '../util'
 import { DOC, SP, ST, getDocType, getTSParamType } from './support'
+import { OpenAPIObject, OperationObject, ParameterObject, SecurityRequirementObject, SchemaObject } from 'openapi3-ts'
+import { getReference, isParamRequired, isReferenceObject } from './helpers'
 
-export default function genOperations(spec: ApiSpec, operations: ApiOperation[], options: ClientOptions) {
+export default function genOperations(spec: OpenAPIObject, operations: OperationObject[], options: ClientOptions) {
   const files = genOperationGroupFiles(spec, operations, options)
   files.forEach(file => writeFileSync(file.path, file.contents))
 }
 
-export function genOperationGroupFiles(spec: ApiSpec, operations: ApiOperation[], options: ClientOptions) {
-  
-
-  for(const op of operations) {
-    if(op.requestBody) {
-      op.parameters.push({
-        in: 'body',
-        name: 'body',
-        required: op.requestBody.required,
-        schema: op.requestBody.content['application/json'],
-        description: op.requestBody.description,
-        allowEmptyValue: null,
-        collectionFormat: null,
-        default: null,        
-        enum: null,
-        exclusiveMaximum: null,
-        exclusiveMinimum: null,
-        format: null,
-        items: null,
-        maxItems: null,
-        maxLength: null,
-        maximum: null,
-        minItems: null,
-        minLength: null,
-        minimum: null,
-        multipleOf: null,
-        pattern: null,
-        type: null,
-        uniqueItems: null
-      });
-    }
-  } // */
-  
+export function genOperationGroupFiles(spec: OpenAPIObject, operations: OperationObject[], options: ClientOptions) {  
   const groups = groupOperationsByGroupName(operations)
   const files = []
   for (let name in groups) {
@@ -59,7 +29,7 @@ export function genOperationGroupFiles(spec: ApiSpec, operations: ApiOperation[]
   return files
 }
 
-function renderHeader(name: string, spec: ApiSpec, options: ClientOptions): string[] {
+function renderHeader(name: string, spec: OpenAPIObject, options: ClientOptions): string[] {
   const lines = []
   if (spec.definitions && options.language === 'ts') {
     lines.push(`/// <reference path="types.ts"/>`)
@@ -71,39 +41,39 @@ function renderHeader(name: string, spec: ApiSpec, options: ClientOptions): stri
   return lines
 }
 
-export function renderOperationGroup(group: any[], func: any, spec: ApiSpec, options: ClientOptions): string[] {
+export function renderOperationGroup(group: any[], func: any, spec: OpenAPIObject, options: ClientOptions): string[] {
   return group
     .map(op => func.call(this, spec, op, options))
     .reduce((a, b) => a.concat(b))
 }
 
-function renderOperation(spec: ApiSpec, op: ApiOperation, options: ClientOptions): string[] {
+function renderOperation(spec: OpenAPIObject, op: OperationObject, options: ClientOptions): string[] {
   const lines = []
-  join(lines, renderOperationDocs(op))
+  join(lines, renderOperationDocs(spec, op))
   join(lines, renderOperationBlock(spec, op, options))
   return lines
 }
 
-function renderOperationDocs(op: ApiOperation): string[] {
+function renderOperationDocs(spec: OpenAPIObject, op: OperationObject): string[] {
   const lines = []
   lines.push(`/**`)
   join(lines, renderDocDescription(op))
-  join(lines, renderDocParams(op))
+  join(lines, renderDocParams(spec, op))
   lines.push(` */`)
   return lines
 }
 
-function renderDocDescription(op: ApiOperation) {
+function renderDocDescription(op: OperationObject) {
   const desc = op.description || op.summary
   return desc ? `${DOC}${desc.trim()}`.replace(/\n/g, `\n${DOC}`).split('\n') : []
 }
 
-function renderDocParams(op: ApiOperation) {
+function renderDocParams(spec: OpenAPIObject, op: OperationObject) {
   const params = op.parameters
   if (!params.length) return []
 
-  const required = params.filter(param => param.required)
-  const optional = params.filter(param => !param.required)
+  const required = params.filter(param => isParamRequired(spec, param))
+  const optional = params.filter(param => !isParamRequired(spec, param))
 
   const lines = []
   join(lines, required.map(renderDocParam))
@@ -132,32 +102,51 @@ function renderDocParam(param) {
   return `${DOC}@param {${getDocType(param)}} ${name} ${description}`
 }
 
-function renderDocReturn(op:ApiOperation): string {
+function renderDocReturn(op:OperationObject): string {
   const response = getBestResponse(op)
   let description = response ? response.description || '' : ''
   description = description.trim().replace(/\n/g, `\n${DOC}${SP}`)
   return `${DOC}@return {Promise<${getDocType(response)}>} ${description}`
 }
 
-function renderOperationBlock(spec: ApiSpec, op: ApiOperation, options: ClientOptions): string[] {
+function renderOperationBlock(spec: OpenAPIObject, op: OperationObject, options: ClientOptions): string[] {
   const lines = []
-  join(lines, renderOperationSignature(op, options))
+  join(lines, renderOperationSignature(spec, op, options))
   join(lines, renderOperationObject(spec, op, options))
   join(lines, renderRequestCall(op, options))
   lines.push('')
   return lines
 }
 
-function renderOperationSignature(op: ApiOperation, options: ClientOptions): string[] {
-  const paramSignature = renderParamSignature(op, options)
+function renderOperationSignature(spec: OpenAPIObject, op: OperationObject, options: ClientOptions): string[] {
+  const paramSignature = renderParamSignature(spec, op, options)
   const rtnSignature = renderReturnSignature(op, options)
   return [ `export function ${op.id}(${paramSignature})${rtnSignature} {` ]
 }
 
-export function renderParamSignature(op: ApiOperation, options: ClientOptions, pkg?: string): string {
-  const params = op.parameters
-  const required = params.filter(param => param.required)
-  const optional = params.filter(param => !param.required)
+export function renderParamSignature(spec: OpenAPIObject, op: OperationObject, options: ClientOptions, pkg?: string): string {
+  //const params = op.parameters
+
+  const required = Array<ParameterObject|SchemaObject>();
+  const optional = Array<ParameterObject|SchemaObject>();
+
+  for(const param of op.parameters) {
+    if(isReferenceObject(param)) {
+      const resolvedRef = getReference(param, spec);
+      if(resolvedRef.nullable)
+        required.push(resolvedRef);
+      else
+        optional.push(resolvedRef);
+    }
+    else {
+      if(param.required)
+        required.push(param);
+      else
+        optional.push(param);
+    }
+  }
+  //const required = params.filter(param => param.required)
+  //const optional = params.filter(param => !param.required)
   const funcParams = renderRequiredParamsSignature(required, options)
   const optParam = renderOptionalParamsSignature(op, optional, options, pkg)
   if (optParam.length) funcParams.push(optParam)
@@ -165,14 +154,14 @@ export function renderParamSignature(op: ApiOperation, options: ClientOptions, p
   return funcParams.map(p => p.join(': ')).join(', ')
 }
 
-function renderRequiredParamsSignature(required: ApiOperationParam[], options: ClientOptions): string[][] {
+function renderRequiredParamsSignature(required: (ParameterObject|SchemaObject)[], options: ClientOptions): string[][] {
   return required.reduce<string[][]>((a, param) => {
     a.push(getParamSignature(param, options))
     return a
   }, [])
 }
 
-function renderOptionalParamsSignature(op: ApiOperation, optional: ApiOperationParam[], options: ClientOptions, pkg?: string) {
+function renderOptionalParamsSignature(op: OperationObject, optional: (ParameterObject|SchemaObject)[], options: ClientOptions, pkg?: string) {
   if (!optional.length) return []
   if (!pkg) pkg = ''
   const s = options.language === 'ts' ? '?' : ''
@@ -181,13 +170,13 @@ function renderOptionalParamsSignature(op: ApiOperation, optional: ApiOperationP
   return param
 }
 
-function renderReturnSignature(op: ApiOperation, options: ClientOptions): string {
+function renderReturnSignature(op: OperationObject, options: ClientOptions): string {
   if (options.language !== 'ts') return ''
   const response = getBestResponse(op)
   return `: Promise<api.Response<${getTSParamType(response)}>>`
 }
 
-function getParamSignature(param: ApiOperationParam, options: ClientOptions): string[] {
+function getParamSignature(param: ParameterObject|SchemaObject, options: ClientOptions): string[] {
   const signature = [getParamName(param.name)]
   if (options.language === 'ts') signature.push(getTSParamType(param))
   return signature
@@ -244,7 +233,7 @@ function escapeReservedWords(name: string): string {
   return escapedName
 }
 
-function renderOperationObject(spec: ApiSpec, op: ApiOperation, options: ClientOptions): string[] {
+function renderOperationObject(spec: OpenAPIObject, op: OperationObject, options: ClientOptions): string[] {
   const lines = []
 
   const parameters = op.parameters.reduce(groupParams, {})
@@ -261,13 +250,13 @@ function renderOperationObject(spec: ApiSpec, op: ApiOperation, options: ClientO
       lines.unshift(`${SP}const parameters = {`)
     }
     lines.push(`${SP}}${ST}`)
-    const hasOptionals = op.parameters.some(op => !op.required)
+    const hasOptionals = op.parameters.some(param => !isParamRequired(spec, param))
     if (hasOptionals) lines.unshift(`${SP}if (!options) options = {}${ST}`)
   }
   return lines
 }
 
-function groupParams(groups: any, param: ApiOperationParam): any {
+function groupParams(groups: any, param: ParameterObject): any {
   const group = groups[param.in] || []
   const name = getParamName(param.name)
   const realName = /^[_$a-z0-9]+$/gim.test(param.name) ? param.name : `'${param.name}'`
@@ -297,17 +286,23 @@ function renderParamGroup(name: string, groupLines: string[], last: boolean): st
   return lines
 }
 
-function renderRequestCall(op: ApiOperation, options: ClientOptions) {
+function renderRequestCall(op: OperationObject, options: ClientOptions) {
   const params = op.parameters.length ? ', parameters': ''
   return [ `${SP}return gateway.request(${op.id}Operation${params})${ST}`, '}' ]
 }
 
-function renderOperationParamType(spec: ApiSpec, op: ApiOperation, options: ClientOptions): string[] {
-  const optional = op.parameters.filter(param => !param.required)
+function renderOperationParamType(spec: OpenAPIObject, op: OperationObject, options: ClientOptions): string[] {
+  const optional = op.parameters.filter(param => !isParamRequired(spec, param))
   if (!optional.length) return []
   const lines = []
   lines.push(`export interface ${op.id[0].toUpperCase() + op.id.slice(1)}Options {`)
-  optional.forEach(param => {
+  optional.forEach(paramObj => {
+    
+    // retriefe the $ref or use param directly
+    const param = (isReferenceObject(paramObj)) 
+      ? getReference(paramObj, spec) 
+      : paramObj;
+
     if (param.description) {
       lines.push(`${SP}/**`)
       lines.push(`${SP}${DOC}` + (param.description || '').trim().replace(/\n/g, `\n${SP}${DOC}${SP}`))
@@ -321,7 +316,7 @@ function renderOperationParamType(spec: ApiSpec, op: ApiOperation, options: Clie
 }
 
 // We could just JSON.stringify this stuff but want it looking as if typed by developer
-function renderOperationInfo(spec: ApiSpec, op: ApiOperation, options: ClientOptions): string[] {
+function renderOperationInfo(spec: OpenAPIObject, op: OperationObject, options: ClientOptions): string[] {
   const lines = []
   if (options.language === 'ts') {
     lines.push(`const ${op.id}Operation: api.OperationInfo = {`)
@@ -346,7 +341,7 @@ function renderOperationInfo(spec: ApiSpec, op: ApiOperation, options: ClientOpt
   return lines
 }
 
-function renderSecurityInfo(security: ApiOperationSecurity[]): string[] {
+function renderSecurityInfo(security: SecurityRequirementObject[]): string[] {
   return security.map((sec, i) => {
     const scopes = sec.scopes
     const secLines = []
