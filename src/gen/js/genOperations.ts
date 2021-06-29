@@ -353,8 +353,17 @@ function renderOperationInfo(spec: OpenAPIObject, op: OperationObject, options: 
   lines.push(`${SP}path: '${op.path}',`)
 
   const hasBody = op.requestBody
-  if (hasBody && op.contentTypes.length) {
-    lines.push(`${SP}contentTypes: ['${op.contentTypes.join("','")}'],`)
+  if (hasBody) {
+    
+    if(isRequestBodyObject(hasBody)) {
+      const contentTypes = Object.keys(hasBody.content).join("', '")
+      lines.push(`${SP}contentTypes: [ '${contentTypes}' ],`)
+    }
+    else {
+
+    }
+
+    
   }
   lines.push(`${SP}method: '${op.method}'${op.security ? ',': ''}`)
   if (op.security && op.security.length) {
