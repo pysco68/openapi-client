@@ -20,7 +20,7 @@ const options = program.opts();
 genCode(options).then(complete, error)
 
 function complete(spec: OpenAPIObject) {
-  console.info(chalk.bold.cyan(`Api ${args.src} code generated into ${args.outDir}`))
+  console.info(chalk.bold.cyan(`Api ${options.src} code generated into ${options.outDir}`))
   process.exit(0)
 }
 
