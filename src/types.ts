@@ -37,9 +37,16 @@ interface ApiOperation {
   parameters: ApiOperationParam[]
   responses: ApiOperationResponse[]
   security?: ApiOperationSecurity[]
+  requestBody?: ApiOperationRequestBody
   accepts: string[]
   contentTypes: string[]
   tags?: string[]
+}
+
+interface ApiOperationRequestBody {
+  description: string
+  required: boolean,
+  content: any[]
 }
 
 interface ApiOperationParam extends ApiOperationParamBase {

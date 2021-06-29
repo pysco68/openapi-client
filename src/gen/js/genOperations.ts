@@ -7,6 +7,38 @@ export default function genOperations(spec: ApiSpec, operations: ApiOperation[],
 }
 
 export function genOperationGroupFiles(spec: ApiSpec, operations: ApiOperation[], options: ClientOptions) {
+  
+
+  for(const op of operations) {
+    if(op.requestBody) {
+      op.parameters.push({
+        in: 'body',
+        name: 'body',
+        required: op.requestBody.required,
+        schema: op.requestBody.content['application/json'],
+        description: op.requestBody.description,
+        allowEmptyValue: null,
+        collectionFormat: null,
+        default: null,        
+        enum: null,
+        exclusiveMaximum: null,
+        exclusiveMinimum: null,
+        format: null,
+        items: null,
+        maxItems: null,
+        maxLength: null,
+        maximum: null,
+        minItems: null,
+        minLength: null,
+        minimum: null,
+        multipleOf: null,
+        pattern: null,
+        type: null,
+        uniqueItems: null
+      });
+    }
+  } // */
+  
   const groups = groupOperationsByGroupName(operations)
   const files = []
   for (let name in groups) {
@@ -214,6 +246,7 @@ function escapeReservedWords(name: string): string {
 
 function renderOperationObject(spec: ApiSpec, op: ApiOperation, options: ClientOptions): string[] {
   const lines = []
+
   const parameters = op.parameters.reduce(groupParams, {})
   const names = Object.keys(parameters)
   const last = names.length - 1
@@ -297,7 +330,7 @@ function renderOperationInfo(spec: ApiSpec, op: ApiOperation, options: ClientOpt
   }
   lines.push(`${SP}path: '${op.path}',`)
 
-  const hasBody = op.parameters.some(p => p.in === 'body')
+  const hasBody = op.requestBody
   if (hasBody && op.contentTypes.length) {
     lines.push(`${SP}contentTypes: ['${op.contentTypes.join("','")}'],`)
   }
