@@ -11,7 +11,7 @@ export default function genCode(spec: OpenAPIObject, operations: OperationObject
   genService(options)
   genSpec(spec, options)
   genOperations(spec, operations, options)
-  genTypes(spec, options)
+  genTypes(spec, operations, options)
   if (options.redux) genReduxActions(spec, operations, options)
   return spec
 }

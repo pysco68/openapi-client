@@ -3,6 +3,7 @@ import {
     OperationObject,
     ParameterObject,
     ReferenceObject,
+    RequestBodyObject,
     SchemaObject
 } from 'openapi3-ts'
 
@@ -35,4 +36,17 @@ export function isParamRequired(spec: OpenAPIObject, param: ParameterObject | Re
     else {
         return param.required;
     }
+}
+
+
+export function isRequestBodyObject(obj: ParameterObject|SchemaObject|RequestBodyObject): obj is RequestBodyObject {
+    const isRef = (obj as ReferenceObject).$ref !== undefined;
+    const isParamObj = (obj as ParameterObject).in !== undefined;
+    return !isRef && !isParamObj;
+}
+
+export function getRequestBodyObject(spec: OpenAPIObject, param: RequestBodyObject | ReferenceObject): RequestBodyObject|SchemaObject {
+    return (isRequestBodyObject(param))
+        ? param
+        : getReference(param, spec);
 }
