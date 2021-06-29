@@ -1,6 +1,9 @@
 # OpenAPI Client
 
-Generate ES6 or Typescript service integration code from an OpenAPI 2.0 spec.
+> Credit where credit is due: this library is largely based on the awesome work of @mikestead with his awesome `openapi-client` library
+> We decided to give it an overhaul to cope with all the "new" openapi 3 goodness!
+
+Generate ES6 or Typescript service integration code from an OpenAPI 3 spec.
 
 Also supports optional Redux action creator generation.
 
