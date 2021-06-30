@@ -8,7 +8,7 @@ import {
     MediaTypeObject
 } from 'openapi3-ts'
 
-export function isReferenceObject(param: ParameterObject|ReferenceObject|SchemaObject): param is ReferenceObject {
+export function isReferenceObject(param: ParameterObject|ReferenceObject|SchemaObject|RequestBodyObject): param is ReferenceObject {
     return (param as ReferenceObject).$ref !== undefined;
 }
 

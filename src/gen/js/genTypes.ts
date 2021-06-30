@@ -44,8 +44,7 @@ function renderDefinitions(spec: OpenAPIObject, operations: OperationObject[], o
 
     // request body type...
     if(op.requestBody) {
-      if(isRequestBodyObject(op.requestBody)) {
-        
+      if(isRequestBodyObject(op.requestBody)) {       
 
         const contentType = op.requestBody.content && typeof op.requestBody.content['application/json'];       
 
@@ -53,7 +52,7 @@ function renderDefinitions(spec: OpenAPIObject, operations: OperationObject[], o
         if (contentType !== 'object')
             continue;
 
-        const obj = op.requestBody.content['application/json'].schema;
+        var obj = op.requestBody.content['application/json'].schema;
 
         // if this is a $ref we skip it
         if(isReferenceObject(obj))
@@ -63,7 +62,29 @@ function renderDefinitions(spec: OpenAPIObject, operations: OperationObject[], o
         }
         
         const name = getParamTypeName(op.requestBody, `${op.id}_request`, true)
-        defs[name] = op.requestBody.content['application/json'].schema;
+        
+        // flatten array type if its not a $ref...
+        if(obj.type === 'array') {
+          
+          if(isReferenceObject(obj.items)) {
+            console.log(`GenTypes / Skipping $ref to ${contentDef.$ref}`)
+            continue;
+          }
+
+          if(defs[name] === undefined) {
+            obj = { 
+              ...obj.items,
+              type: 'object',
+              description: obj.description
+            }
+          }
+          else {
+            console.log(`GenTypes / Skipping already defined base type for ${name}[]`)
+            continue;
+          }
+        }
+
+        defs[name] = obj;
       }
       else {
         const name = getParamTypeName(op.requestBody, `${op.id}_request`, true)
@@ -78,22 +99,41 @@ function renderDefinitions(spec: OpenAPIObject, operations: OperationObject[], o
       if (response.code == 'default' || contentType !== 'object')
           continue;
 
-      const contentDef = response.content['application/json'].schema;
+      var contentDef = response.content['application/json'].schema;
 
       // if this is a $ref we skip it
-      if(isReferenceObject(contentDef) || contentDef.type !== 'object') {
+      if(isReferenceObject(contentDef)) {
         console.log(`GenTypes / Skipping $ref to ${contentDef.$ref}`)
         continue;
       }
 
       const name = getParamTypeName(contentDef, `${op.id}_response`, true)
+
+      // flatten array type if its not a $ref...
+      if(contentDef.type === 'array') {
+
+        if(defs[name] === undefined) {
+          if(isReferenceObject(contentDef.items)) {
+            console.log(`GenTypes / Skipping $ref to ${contentDef.$ref}`)
+            continue;
+          }
+
+          contentDef = { 
+            ...contentDef.items,
+            type: 'object',
+            description: contentDef.description
+          }
+        }
+        else {
+          console.log(`GenTypes / Skipping already defined base type for ${name}[]`)
+          continue;
+        }
+      }
+      
       defs[name] = contentDef;
+            
     }
   }
-
-
-
-  
 
   const typeLines = isTs ? [`namespace api {`] : undefined
   const docLines = []

@@ -1,6 +1,6 @@
 import { writeFileSync, join, groupOperationsByGroupName, camelToUppercase, getBestResponse } from '../util'
 import { DOC, SP, ST, getDocType, getTSParamType, getParamTypeName } from './support'
-import { OpenAPIObject, OperationObject, ParameterObject, SecurityRequirementObject, SchemaObject, RequestBodyObject } from 'openapi3-ts'
+import { OpenAPIObject, OperationObject, ParameterObject, SecurityRequirementObject, SchemaObject, RequestBodyObject, isSchemaObject } from 'openapi3-ts'
 import { getRequestBodyObject, getReference, isParamRequired, isReferenceObject, isRequestBodyObject } from './helpers'
 
 export default function genOperations(spec: OpenAPIObject, operations: OperationObject[], options: ClientOptions) {
@@ -86,8 +86,16 @@ function renderDocParams(spec: OpenAPIObject, op: OperationObject) {
   }
   
   // we have a body to send as well...
-  if(op.requestBody) {
-    lines.push(`${DOC}@param {${op.id}_request} body`)
+  if(op.requestBody && !isReferenceObject(op.requestBody)) {
+    const contentType = op.requestBody.content && typeof op.requestBody.content['application/json'];
+
+    // skip the dummy default types
+    if (contentType === 'object') {
+      const obj = op.requestBody.content['application/json'].schema;
+
+      const name = getParamTypeName(obj, `${op.id}_request`, false)
+      lines.push(`${DOC}@param {${name}} body`)
+    }
   }
   
   lines.push(renderDocReturn(op))
