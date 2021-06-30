@@ -54,7 +54,7 @@ export function getParamTypeName(param: any, defaultName: string, stripArray = f
   } else if (param.type === 'string' && (param.format === 'date-time' || param.format === 'date')) {
     return 'date'
   } else {
-    return param.type || defaultName
+    return defaultName
   }
 }
 

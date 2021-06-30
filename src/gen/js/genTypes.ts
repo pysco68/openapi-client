@@ -58,7 +58,7 @@ function renderDefinitions(spec: OpenAPIObject, operations: OperationObject[], o
         // if this is a $ref we skip it
         if(isReferenceObject(obj))
         {
-          console.log(`Skipping $ref to ${obj.$ref}`)
+          console.log(`GenTypes / Skipping $ref to ${obj.$ref}`)
           continue;
         }
         
@@ -78,11 +78,20 @@ function renderDefinitions(spec: OpenAPIObject, operations: OperationObject[], o
       if (response.code == 'default' || contentType !== 'object')
           continue;
 
-      const contentDef = response.content['application/json'];
-      const name = getParamTypeName(op.requestBody, `${op.id}_response`, true)
-      defs[name] = contentDef.schema;
+      const contentDef = response.content['application/json'].schema;
+
+      // if this is a $ref we skip it
+      if(isReferenceObject(contentDef) || contentDef.type !== 'object') {
+        console.log(`GenTypes / Skipping $ref to ${contentDef.$ref}`)
+        continue;
+      }
+
+      const name = getParamTypeName(contentDef, `${op.id}_response`, true)
+      defs[name] = contentDef;
     }
   }
+
+
 
   
 
