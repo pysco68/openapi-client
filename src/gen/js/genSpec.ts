@@ -1,26 +1,27 @@
 import { DOC, SP, ST, getDocType, getTSParamType } from './support'
 import { writeFileSync } from '../util'
+import { OpenAPIObject } from 'openapi3-ts'
 
-export default function genSpec(spec: ApiSpec, options: ClientOptions) {
+export default function genSpec(spec: OpenAPIObject, options: ClientOptions) {
   const file = genSpecFile(spec, options)
   writeFileSync(file.path, file.contents)
 }
 
-export function genSpecFile(spec: ApiSpec, options: ClientOptions) {
+export function genSpecFile(spec: OpenAPIObject, options: ClientOptions) {
   return {
     path: `${options.outDir}/gateway/spec.${options.language}`,
     contents: renderSpecView(spec, options)
   }
 }
 
-function renderSpecView(spec: ApiSpec, options: ClientOptions): string {
+function renderSpecView(spec: OpenAPIObject, options: ClientOptions): string {
   const view = {
     host: spec.host,
     schemes: spec.schemes,
     basePath: spec.basePath,
     contentTypes: spec.contentTypes,
     accepts: spec.accepts,
-    securityDefinitions: spec.securityDefinitions
+    securitySchemes: spec.components.securitySchemes
   }
   const type = (options.language === 'ts') ? ': api.OpenApiSpec' : ''
   return `${options.language === 'ts' ? '/// <reference path="../types.ts"/>': ''}

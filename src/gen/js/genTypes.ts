@@ -1,15 +1,17 @@
 import { writeFileSync, join } from '../util'
 import { DOC, SP, ST, getDocType, getTSParamType, formatDocDescription } from './support'
+import { OpenAPIObject, OperationObject, ResponseObject } from 'openapi3-ts'
+import { isRequestBodyObject } from './helpers'
 
-export default function genTypes(spec: ApiSpec, options: ClientOptions) {
-  const file = genTypesFile(spec, options)
+export default function genTypes(spec: OpenAPIObject, operations: OperationObject[], options: ClientOptions) {
+  const file = genTypesFile(spec, operations, options)
   writeFileSync(file.path, file.contents)
 }
 
-export function genTypesFile(spec: ApiSpec, options: ClientOptions) {
+export function genTypesFile(spec: OpenAPIObject, operations: OperationObject[], options: ClientOptions) {
   const lines = []
   join(lines, renderHeader())
-  join(lines, renderDefinitions(spec, options))
+  join(lines, renderDefinitions(spec, operations, options))
   return {
     path: `${options.outDir}/types.${options.language}`,
     contents: lines.join('\n')
@@ -24,9 +26,30 @@ function renderHeader() {
   return lines
 }
 
-function renderDefinitions(spec: ApiSpec, options: ClientOptions): string[] {
+function renderDefinitions(spec: OpenAPIObject, operations: OperationObject[], options: ClientOptions): string[] {
   const isTs = (options.language === 'ts')
-  const defs = spec.definitions || {}
+  const defs = spec.components.schemas || {}
+
+  // gather spec items from the other parts
+  for(const op of operations) {
+
+    // request body type...
+    if(op.requestBody) {
+      if(isRequestBodyObject(op.requestBody)) {
+        defs[`${op.id}_request`] = op.requestBody.content['application/json'].schema;
+      }
+      else {
+        defs[`${op.id}_request`] = op.requestBody
+      }      
+    }
+
+    for(const response of Object.values<ResponseObject>(op.responses)) {
+      // skip the dummy default types
+      if(response.code == 'default') continue;
+      defs[`${op.id}_response`] = response.content['application/json'].schema;
+    }
+  }
+
   const typeLines = isTs ? [`namespace api {`] : undefined
   const docLines = []
   Object.keys(defs).forEach(name => {
@@ -45,6 +68,7 @@ function renderDefinitions(spec: ApiSpec, options: ClientOptions): string[] {
 
 function renderTsType(name, def, options) {
   if (def.allOf) return renderTsInheritance(name, def.allOf, options)
+
   if (def.type !== 'object') {
     console.warn(`Unable to render ${name} ${def.type}, skipping.`)
     return []
@@ -102,13 +126,13 @@ function renderTsTypeProp(prop: string, info: any, required: boolean): string[] 
 }
 
 function renderTsDefaultTypes() {
-  return `export interface OpenApiSpec {
+  return `export interface OpenOpenAPIObject {
   host: string${ST}
   basePath: string${ST}
   schemes: string[]${ST}
   contentTypes: string[]${ST}
   accepts: string[]${ST}
-  securityDefinitions?: {[key: string]: SecurityDefinition}${ST}
+  securitySchemes?: {[key: string]: SecurityDefinition}${ST}
 }
 
 export interface SecurityDefinition {
@@ -184,7 +208,7 @@ export interface ServiceOptions {
    * Function which should resolve rights for a request (e.g auth token) given
    * the OpenAPI defined security requirements of the operation to be executed.
    */
-  getAuthorization?: (security: OperationSecurity, securityDefinitions: any, op: OperationInfo) => Promise<OperationRightsInfo>${ST}
+  getAuthorization?: (security: OperationSecurity, securitySchemes: any, op: OperationInfo) => Promise<OperationRightsInfo>${ST}
   /**
    * Given an error response, custom format and return a ServiceError
    */
@@ -321,13 +345,16 @@ function renderTypeDoc(name: string, def: any): string[] {
   const lines = [
     '/**',
     `${DOC}@typedef ${name}`,
-    `${DOC}@memberof module:${group}`
   ]
+
+  if(def.description)
+    lines.push(`${DOC}@abstract ${def.description}`)
+
   const req = def.required || []
   const propLines = Object.keys(def.properties).map(prop => {
     const info = def.properties[prop]
     const description = (info.description || '').trim().replace(/\n/g, `\n${DOC}${SP}`)
-    return `${DOC}@property {${getDocType(info)}} ${prop} ${description}`
+    return `${DOC}@property {${getDocType(info)}} ${prop} ${info.format ? '<' + info.format + '> ' : ''} ${info.description ?? ''}`
   })
   if (propLines.length) lines.push(`${DOC}`)
   join(lines, propLines)

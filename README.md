@@ -1,6 +1,9 @@
 # OpenAPI Client
 
-Generate ES6 or Typescript service integration code from an OpenAPI 2.0 spec.
+> Credit where credit is due: this library is largely based on the awesome work of @mikestead with his awesome `openapi-client` library
+> We decided to give it an overhaul to cope with all the "new" openapi 3 goodness!
+
+Generate ES6 or Typescript service integration code from an OpenAPI 3 spec.
 
 Also supports optional Redux action creator generation.
 
@@ -84,7 +87,7 @@ serviceGateway.init({
 function getAuthorization(security) {
   switch (security.id) {
     case 'account': return getAccountToken(security);
-    // case 'api_key': return getApiKey(security); // Or any other securityDefinitions from your OpenAPI spec
+    // case 'api_key': return getApiKey(security); // Or any other securitySchemes from your OpenAPI spec
     default: throw new Error(`Unknown security type '${security.id}'`)
   }
 };
@@ -123,7 +126,7 @@ export interface ServiceOptions {
    * the OpenAPI defined security requirements of the operation to be executed.
    */
   getAuthorization?: (security: OperationSecurity, 
-                      securityDefinitions: any,
+                      securitySchemes: any,
                       op: OperationInfo) => Promise<OperationRightsInfo>${ST}
   /**
    * Given an error response, custom format and return a ServiceError

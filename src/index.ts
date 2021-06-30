@@ -3,6 +3,7 @@ import { resolveSpec, getOperations } from './spec'
 import genJsCode from './gen/js'
 import { removeOldFiles } from './gen/util'
 import * as assert from 'assert'
+import { OpenAPIObject, OperationObject } from 'openapi3-ts'
 
 export function genCode(options: ClientOptions): Promise<any> {
   return verifyOptions(options)
@@ -23,7 +24,7 @@ function verifyOptions(options: ClientOptions): Promise<any> {
   }
 }
 
-function gen(spec: ApiSpec, options: ClientOptions): ApiSpec {
+function gen(spec: OpenAPIObject, options: ClientOptions): OpenAPIObject {
   removeOldFiles(options)
   const operations = getOperations(spec)
   switch (options.language) {

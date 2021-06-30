@@ -1,6 +1,7 @@
 import * as FS from 'fs'
 import * as PATH from 'path'
 import * as mkdirp from 'mkdirp'
+import { OpenAPIObject, OperationObject, ResponseObject } from 'openapi3-ts'
 
 export function exists(filePath: string): FS.Stats {
   try {
@@ -32,7 +33,7 @@ export function camelToUppercase(value: string): string {
   return value.replace(/([A-Z]+)/g, '_$1').toUpperCase()
 }
 
-export function getBestResponse(op: ApiOperation): ApiOperationResponse {
+export function getBestResponse(op: OperationObject): ResponseObject {
   const NOT_FOUND = 100000
   const lowestCode = op.responses.reduce((code, resp) => {
     const responseCode = parseInt(resp.code)
