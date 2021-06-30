@@ -55,6 +55,7 @@
     "js-yaml": "^4.1.0",
     "mkdirp": "^1.0.4",
     "mustache": "^4.2.0",
+    "npm": "^7.19.0",
     "openapi3-ts": "^2.0.1"
   },
   "devDependencies": {
