@@ -1,5 +1,5 @@
 import { writeFileSync, join, groupOperationsByGroupName, camelToUppercase, getBestResponse } from '../util'
-import { DOC, SP, ST, getDocType, getTSParamType } from './support'
+import { DOC, SP, ST, getDocType, getTSParamType, getParamTypeName } from './support'
 import { OpenAPIObject, OperationObject, ParameterObject, SecurityRequirementObject, SchemaObject, RequestBodyObject } from 'openapi3-ts'
 import { getRequestBodyObject, getReference, isParamRequired, isReferenceObject, isRequestBodyObject } from './helpers'
 
@@ -110,9 +110,20 @@ function renderDocParam(param) {
 
 function renderDocReturn(op:OperationObject): string {
   const response = getBestResponse(op)
+  
   let description = response ? response.description || '' : ''
   description = description.trim().replace(/\n/g, `\n${DOC}${SP}`)
-  return `${DOC}@return {Promise<${op.id}_response>} ${description}`
+
+  const contentType = response.content && typeof response.content['application/json'];
+
+  // if nothing goes, we return objects...
+  if (response.code == 'default' || contentType !== 'object')
+    return `${DOC}@return {Promise<$tipi$ApiResponse<object>>} ${description}`;
+
+  // get the type name and/or generate it form the op id
+  const contentDef = response.content['application/json'];
+  const name = getParamTypeName(contentDef, `${op.id}_response`) 
+  return `${DOC}@return {Promise<$tipi$ApiResponse<${name}>>} ${description}`
 }
 
 function renderOperationBlock(spec: OpenAPIObject, op: OperationObject, options: ClientOptions): string[] {

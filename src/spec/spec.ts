@@ -79,7 +79,7 @@ function formatSpec(spec: OpenAPIObject, src?: string, options?: SpecOptions): O
 export function expandRefs(data: any, lookup: Object, options: SpecOptions): any {
   if (!data) return data
 
-  if (Array.isArray(data)) {
+  /*if (Array.isArray(data)) {
     return data.map(item => expandRefs(item, lookup, options))
   } else if (typeof data === 'object') {
     if (dataCache.has(data)) return data
@@ -92,7 +92,7 @@ export function expandRefs(data: any, lookup: Object, options: SpecOptions): any
     for (let name in data) {
       data[name] = expandRefs(data[name], lookup, options)
     }
-  }
+  }*/
   return data
 }
 

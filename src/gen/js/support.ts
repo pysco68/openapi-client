@@ -29,12 +29,42 @@ export function formatDocDescription(description: string): string {
   return (description || '').trim().replace(/\n/g, `\n${DOC}${SP}`)
 }
 
+export function getParamTypeName(param: any, defaultName: string, stripArray = false): string {
+  if (!param) {
+    return defaultName
+  } else if (param.$ref) {
+    const type = param.$ref.split('/').pop()
+    return `${type}`
+  } else if (param.schema) {
+    return getParamTypeName(param.schema, defaultName, stripArray)
+  } else if (param.type === 'array') {
+    const arrSuffix = stripArray ? '' : '[]';
+
+    if (param.items.type) {
+      return `${getParamTypeName(param.items, defaultName,stripArray)}${arrSuffix}`
+    } else if (param.items.$ref) {
+      const type = param.items.$ref.split('/').pop()
+      return `${type}${arrSuffix}`
+    } else {
+      return `${defaultName}${arrSuffix}`
+    }
+  
+  }  else if (param.type === 'integer') {
+    return 'number'
+  } else if (param.type === 'string' && (param.format === 'date-time' || param.format === 'date')) {
+    return 'date'
+  } else {
+    return param.type || defaultName
+  }
+}
+
 export function getDocType(param: any): string {
+  //console.log(param)
   if (!param) {
     return 'object'
   } else if (param.$ref) {
     const type = param.$ref.split('/').pop()
-    return `module:types.${type}`
+    return `${type}`
   } else if (param.schema) {
     return getDocType(param.schema)
   } else if (param.type === 'array') {
@@ -42,7 +72,7 @@ export function getDocType(param: any): string {
       return `${getDocType(param.items)}[]`
     } else if (param.items.$ref) {
       const type = param.items.$ref.split('/').pop()
-      return `module:types.${type}[]`
+      return `${type}[]`
     } else {
       return 'object[]'
     }

@@ -4,10 +4,11 @@ import {
     ParameterObject,
     ReferenceObject,
     RequestBodyObject,
-    SchemaObject
+    SchemaObject,
+    MediaTypeObject
 } from 'openapi3-ts'
 
-export function isReferenceObject(param: ParameterObject | ReferenceObject): param is ReferenceObject {
+export function isReferenceObject(param: ParameterObject|ReferenceObject|SchemaObject): param is ReferenceObject {
     return (param as ReferenceObject).$ref !== undefined;
 }
 

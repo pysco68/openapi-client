@@ -1,7 +1,7 @@
 import { writeFileSync, join } from '../util'
-import { DOC, SP, ST, getDocType, getTSParamType, formatDocDescription } from './support'
+import { DOC, SP, ST, getDocType, getParamTypeName, getTSParamType, formatDocDescription } from './support'
 import { OpenAPIObject, OperationObject, ResponseObject } from 'openapi3-ts'
-import { isRequestBodyObject } from './helpers'
+import { isRequestBodyObject, isReferenceObject } from './helpers'
 
 export default function genTypes(spec: OpenAPIObject, operations: OperationObject[], options: ClientOptions) {
   const file = genTypesFile(spec, operations, options)
@@ -23,6 +23,15 @@ function renderHeader() {
   lines.push(`/** @module types */`)
   lines.push(`// Auto-generated, edits will be overwritten`)
   lines.push(``)
+  lines.push(`/**`)
+  lines.push(` * Typed fetch API response. `)
+  lines.push(` * @template T`)
+  lines.push(` * @typedef $tipi$ApiResponse`)
+  lines.push(` * @property {Result} raw   raw fetch client response object`)
+  lines.push(` * @property {T|ServiceError} data   contains the query result (or ServiceError if error is set)`)
+  lines.push(` * @property {?boolean} error   boolean flag set if status code indicates failure`)
+  lines.push(` */`)
+  lines.push(``)
   return lines
 }
 
@@ -36,19 +45,46 @@ function renderDefinitions(spec: OpenAPIObject, operations: OperationObject[], o
     // request body type...
     if(op.requestBody) {
       if(isRequestBodyObject(op.requestBody)) {
-        defs[`${op.id}_request`] = op.requestBody.content['application/json'].schema;
+        
+
+        const contentType = op.requestBody.content && typeof op.requestBody.content['application/json'];       
+
+        // skip the dummy default types
+        if (contentType !== 'object')
+            continue;
+
+        const obj = op.requestBody.content['application/json'].schema;
+
+        // if this is a $ref we skip it
+        if(isReferenceObject(obj))
+        {
+          console.log(`Skipping $ref to ${obj.$ref}`)
+          continue;
+        }
+        
+        const name = getParamTypeName(op.requestBody, `${op.id}_request`, true)
+        defs[name] = op.requestBody.content['application/json'].schema;
       }
       else {
-        defs[`${op.id}_request`] = op.requestBody
+        const name = getParamTypeName(op.requestBody, `${op.id}_request`, true)
+        defs[name] = op.requestBody
       }      
     }
 
     for(const response of Object.values<ResponseObject>(op.responses)) {
+      const contentType = response.content && typeof response.content['application/json'];
+
       // skip the dummy default types
-      if(response.code == 'default') continue;
-      defs[`${op.id}_response`] = response.content['application/json'].schema;
+      if (response.code == 'default' || contentType !== 'object')
+          continue;
+
+      const contentDef = response.content['application/json'];
+      const name = getParamTypeName(op.requestBody, `${op.id}_response`, true)
+      defs[name] = contentDef.schema;
     }
   }
+
+  
 
   const typeLines = isTs ? [`namespace api {`] : undefined
   const docLines = []
@@ -69,7 +105,7 @@ function renderDefinitions(spec: OpenAPIObject, operations: OperationObject[], o
 function renderTsType(name, def, options) {
   if (def.allOf) return renderTsInheritance(name, def.allOf, options)
 
-  if (def.type !== 'object') {
+  if (def.type !== 'object' || def.type !== 'array') {
     console.warn(`Unable to render ${name} ${def.type}, skipping.`)
     return []
   }
@@ -336,7 +372,15 @@ export interface ServiceMeta {
 
 function renderTypeDoc(name: string, def: any): string[] {
   if (def.allOf) return renderDocInheritance(name, def.allOf)
-  if (def.type !== 'object') {
+
+  if(def.$ref != undefined)
+  {
+    console.info(`Skipping $ref to ${def.$ref}`)
+    return;
+  }
+  
+
+  if (!(def.type == 'object' || def.type == 'array' || def.type === undefined)) {
     console.warn(`Unable to render ${name} ${def.type}, skipping.`)
     return []
   }
@@ -344,18 +388,24 @@ function renderTypeDoc(name: string, def: any): string[] {
   const group = 'types'
   const lines = [
     '/**',
-    `${DOC}@typedef ${name}`,
+    `${DOC}${def.description ?? ''}`,
+    `${DOC}@typedef ${name}`
   ]
 
-  if(def.description)
-    lines.push(`${DOC}@abstract ${def.description}`)
+  const propLines = []
 
-  const req = def.required || []
-  const propLines = Object.keys(def.properties).map(prop => {
-    const info = def.properties[prop]
+  const propertyGen = (prop, collection) => {
+    const info = collection[prop]
     const description = (info.description || '').trim().replace(/\n/g, `\n${DOC}${SP}`)
-    return `${DOC}@property {${getDocType(info)}} ${prop} ${info.format ? '<' + info.format + '> ' : ''} ${info.description ?? ''}`
-  })
+    return `${DOC}@property {${getDocType(info)}} ${prop} ${info.format ? '<' + info.format + '> ' : ''} ${description}`
+  };
+
+  if(def.properties)
+      propLines.push( ...Object.keys(def.properties).map(prop => propertyGen(prop, def.properties)));
+
+  if(def.additionalProperties)
+      propLines.push( ...Object.keys(def.additionalProperties).map(prop => propertyGen(prop, def.additionalProperties)));
+
   if (propLines.length) lines.push(`${DOC}`)
   join(lines, propLines)
   lines.push(' */')
@@ -377,7 +427,6 @@ function verifyAllOf(name:string, allOf: any[]) {
   // but seems to be how most model inheritance in Swagger and is consistent
   // with other code generation tool
   if (!allOf || allOf.length !== 2) {
-    console.log(allOf)
     throw new Error(`Json schema allOf '${name}' must have two elements to be treated as inheritance`)
   }
   const ref = allOf[0]

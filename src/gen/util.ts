@@ -33,7 +33,7 @@ export function camelToUppercase(value: string): string {
   return value.replace(/([A-Z]+)/g, '_$1').toUpperCase()
 }
 
-export function getBestResponse(op: OperationObject): ResponseObject {
+export function getBestResponse(op: OperationObject, generateDefault200Response = true): ResponseObject {
   const NOT_FOUND = 100000
   const lowestCode = op.responses.reduce((code, resp) => {
     const responseCode = parseInt(resp.code)
@@ -41,9 +41,15 @@ export function getBestResponse(op: OperationObject): ResponseObject {
     else return responseCode
   }, NOT_FOUND)
   
-  return (lowestCode === NOT_FOUND) 
+  var result = (lowestCode === NOT_FOUND) 
     ? op.responses[0]
     : op.responses.find(resp => resp.code == `${lowestCode}`)
+
+  if(generateDefault200Response && lowestCode >= 399) {
+    result = { description: "default success response", code: "default" }
+  }
+
+  return result;
 }
 
 export function removeOldFiles(options: ClientOptions) {
