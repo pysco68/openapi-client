@@ -7,7 +7,7 @@ Generate ES6 or Typescript service integration code from an OpenAPI 3 spec.
 
 Also supports optional Redux action creator generation.
 
-[Tipi CI logo](https://user-images.githubusercontent.com/90577/123913870-056c7500-d97f-11eb-8803-043b85bd87ae.png)
+![Tipi CI logo](https://user-images.githubusercontent.com/90577/123913870-056c7500-d97f-11eb-8803-043b85bd87ae.png)
 
 Tested against JSON services built at [tipi.build](https://tipi.build)
 
