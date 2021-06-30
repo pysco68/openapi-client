@@ -1,6 +1,6 @@
 {
   "name": "@pysco68/tipi-web-openapi-client",
-  "version": "21.6.1",
+  "version": "21.6.2",
   "description": "Generate ES6 or TypeScript clients from OpenAPI 3.0 specs",
   "author": {
     "name": "Yannic Staudt",
@@ -21,7 +21,7 @@
   },
   "main": "dist/index.js",
   "bin": {
-    "openapi": "dist/cli.js"
+    "tipi-openapi-gen": "dist/cli.js"
   },
   "scripts": {
     "setup": "typings install",
