@@ -3,13 +3,13 @@
 > Credit where credit is due: this library is largely based on the awesome work of @mikestead with his awesome `openapi-client` library
 > We decided to give it an overhaul to cope with all the "new" openapi 3 goodness!
 
-Generate ES6 or Typescript service integration code from an OpenAPI 3 spec. 
+Generate ES6 client integration code from an OpenAPI 3 spec. 
 
 Also supports optional Redux action creator generation.
 
-![Tipi logo]("./assets/Tipi CI logo.png")
+![Tipi logo](./assets/Tipi-CI-logo.png)
 
-Tested against JSON services built at [tipi.build](https://tipi.build)
+Tested against JSON services built at [tipi.build](https://tipi.build) and the official [OpenAPIv3 petstore example](https://petstore3.swagger.io/)
 
 ## Install
 
@@ -40,7 +40,6 @@ Options:
   -V, --version           output the version number
   -s, --src <url|path>    The url or path to the Open API spec file
   -o, --outDir <dir>      The path to the directory where files should be generated
-  -l, --language <js|ts>  The language of code to generate
   --redux                 True if wanting to generate redux action creators
 ```
 
@@ -52,7 +51,6 @@ const openapi = require('@pysco68/tipi-web-openapi-client')
 openapi.genCode({
   src: 'https://petstore3.swagger.io/api/v3/openapi.json',
   outDir: './src/service',
-  language: 'ts',
   redux: true
 })
 .then(complete, error)

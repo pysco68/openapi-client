@@ -7,10 +7,11 @@ import { OpenAPIObject, OperationObject } from 'openapi3-ts'
 
 export function genCode(options: ClientOptions): Promise<any> {
   return verifyOptions(options)
-    .then(options =>
-      resolveSpec(options.src, { ignoreRefType: '#/definitions/' })
+    .then(options => {
+      options.language = 'js';
+      return resolveSpec(options.src, { ignoreRefType: '#/definitions/' })
         .then(spec => gen(spec, options))
-    )
+    })
 }
 
 function verifyOptions(options: ClientOptions): Promise<any> {
@@ -29,7 +30,7 @@ function gen(spec: OpenAPIObject, options: ClientOptions): OpenAPIObject {
   const operations = getOperations(spec)
   switch (options.language) {
     case 'js': return genJsCode(spec, operations, options)
-    case 'ts': return genJsCode(spec, operations, options)
+    //case 'ts': return genJsCode(spec, operations, options)
     default:
       throw new Error(`Language '${options.language}' not supported`)
   }
