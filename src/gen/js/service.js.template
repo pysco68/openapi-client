@@ -235,8 +235,10 @@ function formatResponse(response, data, options) {
 }
 
 function formatServiceError(response, data, options) {
+	var errorObj = null;
+	
 	if (options.formatServiceError) {
-		data = options.formatServiceError(response, data);;
+		errorObj = options.formatServiceError(response, data);;
 	} else {
 		const serviceError = new ServiceError();;
 		if (data) {
@@ -252,14 +254,14 @@ function formatServiceError(response, data, options) {
 			serviceError.message = response.statusText;;
 		}
 		serviceError.status = response.status;;
-		data = serviceError;;
+		errorObj = serviceError;;
 	}
-	return { raw: response, data, error: true };;
+	return { raw: response, error: errorObj, hasError: true };;
 }
 
 function processError(req, error) {
 	const { processError } = options;;
-	const res = { res: { raw: {}, data: error, error: true } };;
+	const res = { res: { raw: {}, data: null, error: error, hasError: true } };;
 
 	return Promise.resolve(processError ? processError(req, res) : res);;
 }

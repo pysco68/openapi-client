@@ -27,9 +27,10 @@ function renderHeader() {
   lines.push(` * Typed fetch API response. `)
   lines.push(` * @template T`)
   lines.push(` * @typedef $tipi$ApiResponse`)
-  lines.push(` * @property {Result} raw   raw fetch client response object`)
-  lines.push(` * @property {T|ServiceError} data   contains the query result (or ServiceError if error is set)`)
-  lines.push(` * @property {?boolean} error   boolean flag set if status code indicates failure`)
+  lines.push(` * @property {Response} raw   raw fetch client response object`)
+  lines.push(` * @property {T} data   contains the query result`)
+  lines.push(` * @property {Error} error ServiceError if hasError is set`)
+  lines.push(` * @property {?boolean} hasError   boolean flag set if status code indicates failure`)
   lines.push(` */`)
   lines.push(``)
   return lines
