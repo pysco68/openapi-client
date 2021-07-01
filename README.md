@@ -1,10 +1,23 @@
-# tipi web OpenAPI Client
+<h1><img src="./assets/tipi32x32.png" alt="tipi logo"> tipi web OpenAPI Client</h1>
+
+<p>
+<a href="https://david-dm.org/pysco68/tipi-openapi-gen">
+    <img alt="" src="https://david-dm.org/pysco68/tipi-openapi-gen/status.svg?style=flat-square">
+</a>
+
+<a href="https://npmjs.com/package/@pysco68/tipi-openapi-gen">
+    <img alt="" src="https://img.shields.io/npm/v/@pysco68/tipi-web-openapi-client">
+</a>
+<a href="https://npmjs.com/package/@nuxtjs/auth">
+    <img alt="" src="https://img.shields.io/npm/dt/@pysco68/tipi-web-openapi-client.svg?style=flat-square">
+</a>
+</p>
 
 > Credit where credit is due: this library is largely based on the awesome work of @mikestead with his awesome `openapi-client` library
 > We decided to give it an overhaul to cope with all the "new" openapi 3 goodness!
 
 Generate ES6 client integration code from an OpenAPI 3 spec. 
-
+ 
 Also supports optional Redux action creator generation.
 
 ![Tipi logo](./assets/Tipi-CI-logo.png)

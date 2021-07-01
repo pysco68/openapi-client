@@ -1,19 +1,19 @@
 {
   "name": "@pysco68/tipi-web-openapi-client",
-  "version": "21.6.2",
+  "version": "21.6.3",
   "description": "Generate ES6 or TypeScript clients from OpenAPI 3.0 specs",
   "author": {
     "name": "Yannic Staudt",
     "url": "https://github.com/pysco68"
   },
   "license": "MIT",
-  "homepage": "https://github.com/pysco68/openapi-client",
+  "homepage": "https://github.com/pysco68/tipi-openapi-gen",
   "repository": {
     "type": "git",
-    "url": "https://github.com/pysco68/openapi-client.git"
+    "url": "https://github.com:pysco68/tipi-openapi-gen.git"
   },
   "bugs": {
-    "url": "https://github.com/pysco68/openapi-client/issues"
+    "url": "https://github.com/pysco68/tipi-openapi-gen/issues"
   },
   "engines": {
     "node": ">=14.0.0",
