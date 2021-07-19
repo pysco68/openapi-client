@@ -187,6 +187,7 @@ function applyAuthorization(req, rights, spec) {
 				req.header[resolveAuthHeaderName('Authorization')] = `Basic ${token}`;;
 				break;;
 			case 'oauth2':
+			case 'http':
 				req.header[resolveAuthHeaderName('Authorization')] = `Bearer ${rightsInfo.token}`;;
 				break;;
 			case 'apiKey':
