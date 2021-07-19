@@ -1,14 +1,14 @@
-<h1><img src="./assets/tipi32x32.png" alt="tipi logo"> tipi web OpenAPI Client</h1>
+<h1><img src="./assets/tipi32x32.png" alt="tipi logo"> tipi web OpenAPI Client Generator</h1>
 
 <p>
 <a href="https://david-dm.org/pysco68/tipi-openapi-gen">
     <img alt="" src="https://david-dm.org/pysco68/tipi-openapi-gen/status.svg?style=flat-square">
 </a>
 
-<a href="https://npmjs.com/package/@pysco68/tipi-openapi-gen">
+<a href="https://www.npmjs.com/package/@pysco68/tipi-web-openapi-client">
     <img alt="" src="https://img.shields.io/npm/v/@pysco68/tipi-web-openapi-client">
 </a>
-<a href="https://npmjs.com/package/@nuxtjs/auth">
+<a href="https://www.npmjs.com/package/@pysco68/tipi-web-openapi-client">
     <img alt="" src="https://img.shields.io/npm/dt/@pysco68/tipi-web-openapi-client.svg?style=flat-square">
 </a>
 </p>

@@ -1,6 +1,6 @@
 {
   "name": "@pysco68/tipi-web-openapi-client",
-  "version": "21.6.3",
+  "version": "21.7.1",
   "description": "Generate ES6 or TypeScript clients from OpenAPI 3.0 specs",
   "author": {
     "name": "Yannic Staudt",

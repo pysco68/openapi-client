@@ -65,7 +65,7 @@ function renderOperationDocs(spec: OpenAPIObject, op: OperationObject): string[]
 }
 
 function renderDocDescription(op: OperationObject) {
-  const desc = op.description || op.summary
+  const desc = op.summary || op.description
   return desc ? `${DOC}${desc.trim()}`.replace(/\n/g, `\n${DOC}`).split('\n') : []
 }
 
@@ -81,7 +81,7 @@ function renderDocParams(spec: OpenAPIObject, op: OperationObject) {
     lines.push(`${DOC}@param {object} options Optional options`)
     join(lines, optional.map(renderDocParam))
   }
-  if (op.description || op.summary) {
+  if (op.summary || op.description) {
     lines.unshift(DOC)
   }
   
