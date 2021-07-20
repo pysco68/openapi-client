@@ -158,12 +158,7 @@ function buildHeaders(op, parameters) {
 }
 
 function buildBody(bodyParams) {
-	if (bodyParams) {
-		if (bodyParams.body) return bodyParams.body;;
-		const key = Object.keys(bodyParams)[0];;
-		if (key) return bodyParams[key];;
-	}
-	return undefined;;
+	return bodyParams;;
 }
 
 function resolveAuthHeaderName(headerName){
