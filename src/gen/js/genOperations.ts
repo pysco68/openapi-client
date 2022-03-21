@@ -36,7 +36,7 @@ function renderHeader(name: string, spec: OpenAPIObject, options: ClientOptions)
   }
   lines.push(`/** @module ${name} */`)
   lines.push(`// Auto-generated, edits will be overwritten`)
-  lines.push(`import * as gateway from './gateway.js'${ST}`)
+  lines.push(`import * as gateway from './gateway/index.js'${ST}`)
   lines.push(`import * as types from './types.js'${ST}`)
   lines.push('')
   return lines
