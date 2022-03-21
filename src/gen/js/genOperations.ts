@@ -316,7 +316,7 @@ function renderOperationObject(spec: OpenAPIObject, op: OperationObject, options
 
 function groupParams(groups: any, param: ParameterObject): any {
   // hack for _requestOptions
-  const isRequestOption = (param.name === REQUEST_OPTIONS_NAME && param.schema.$ref === REQUEST_OPTIONS_NAME)
+  const isRequestOption = (param.name === REQUEST_OPTIONS_NAME && param.schema.$ref === REQUEST_OPTIONS_TYPE)
   const groupName = (isRequestOption) ? REQUEST_OPTIONS_NAME : param.in;
 
   //
