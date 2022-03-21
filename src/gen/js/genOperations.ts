@@ -1,5 +1,5 @@
 import { writeFileSync, join, groupOperationsByGroupName, camelToUppercase, getBestResponse } from '../util'
-import { DOC, SP, ST, getDocType, getTSParamType, getParamTypeName } from './support'
+import { DOC, SP, ST, getDocType, getTSParamType, getParamTypeName, REQUEST_OPTIONS_NAME, REQUEST_OPTIONS_TYPE } from './support'
 import { OpenAPIObject, OperationObject, ParameterObject, SecurityRequirementObject, SchemaObject, RequestBodyObject, isSchemaObject } from 'openapi3-ts'
 import { getRequestBodyObject, getReference, isParamRequired, isReferenceObject, isRequestBodyObject } from './helpers'
 
@@ -36,8 +36,8 @@ function renderHeader(name: string, spec: OpenAPIObject, options: ClientOptions)
   }
   lines.push(`/** @module ${name} */`)
   lines.push(`// Auto-generated, edits will be overwritten`)
-  lines.push(`import * as gateway from './gateway'${ST}`)
-  lines.push(`import * as types from './types'${ST}`)
+  lines.push(`import * as gateway from './gateway.js'${ST}`)
+  lines.push(`import * as types from './types.js'${ST}`)
   lines.push('')
   return lines
 }
@@ -49,6 +49,17 @@ export function renderOperationGroup(group: any[], func: any, spec: OpenAPIObjec
 }
 
 function renderOperation(spec: OpenAPIObject, op: OperationObject, options: ClientOptions): string[] {
+  // hacking in a parameter to make per-request service options possible 
+  // this special optional parameter will be stored in a dedicated "requestOptions"
+  // property in the params
+  op.parameters.push({ 
+    name: REQUEST_OPTIONS_NAME,               // /!\ important
+    in: 'query',  // can be anything as it will be categorized separately later in code
+    required: false,                          // /!\ important
+    description: 'Per-call request options', 
+    schema: { $ref: REQUEST_OPTIONS_TYPE }    // /!\ important
+  })
+  
   const lines = []
   join(lines, renderOperationDocs(spec, op))
   join(lines, renderOperationBlock(spec, op, options))
@@ -220,7 +231,7 @@ function getParamSignature(param: ParameterObject|SchemaObject|RequestBodyObject
 }
 
 export function getParamName(name: string): string {
-  const parts = name.split(/[_-\s!@\#$%^&*\(\)]/g).filter(n => !!n)
+  const parts = name.split(/[-\s!@\#$%^&*\(\)]/g).filter(n => !!n)
   const reduced = parts.reduce((name, p) => `${name}${p[0].toUpperCase()}${p.slice(1)}`)
   return escapeReservedWords(reduced)
 }
@@ -274,6 +285,7 @@ function renderOperationObject(spec: OpenAPIObject, op: OperationObject, options
   const lines = []
 
   const parameters = op.parameters.reduce(groupParams, {})
+
   const names = Object.keys(parameters)
   var last = names.length - 1
 
@@ -303,7 +315,13 @@ function renderOperationObject(spec: OpenAPIObject, op: OperationObject, options
 }
 
 function groupParams(groups: any, param: ParameterObject): any {
-  const group = groups[param.in] || []
+  // hack for _requestOptions
+  const isRequestOption = (param.name === REQUEST_OPTIONS_NAME && param.schema.$ref === REQUEST_OPTIONS_NAME)
+  const groupName = (isRequestOption) ? REQUEST_OPTIONS_NAME : param.in;
+
+  //
+  const group = groups[groupName] || [] 
+
   const name = getParamName(param.name)
   const realName = /^[_$a-z0-9]+$/gim.test(param.name) ? param.name : `'${param.name}'`
   const value = param.required ? name : 'options.' + name
@@ -315,12 +333,15 @@ function groupParams(groups: any, param: ParameterObject): any {
   } else if (param.format === 'date' || param.format === 'date-time') {
     const str = `gateway.formatDate(${value}, '${param.format}')`
     group.push(`${SP.repeat(3)}${realName}: ${str}`)
+  } else if(isRequestOption) {
+    // we spread out the request options to flatten the structure
+    group.push(`${SP.repeat(3)}...${value}`)
   } else if (param.required && param.name === name && name === realName) {
     group.push(`${SP.repeat(3)}${realName}`)
   } else {
     group.push(`${SP.repeat(3)}${realName}: ${value}`)
   }
-  groups[param.in] = group
+  groups[groupName] = group
   return groups
 }
 

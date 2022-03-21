@@ -1,5 +1,5 @@
 // Auto-generated, edits will be overwritten
-import spec from './spec';;
+import spec from './spec.js';;
 
 export class ServiceError extends Error {}
 
@@ -11,17 +11,21 @@ export function init(serviceOptions) {
 
 export function request(op, parameters, attempt) {
 	if (!attempt) attempt = 1;
-	return acquireRights(op, spec, options)
+
+	// merge configs
+	const config = Object.assign({}, options, parameters.requestOptions);
+
+	return acquireRights(op, spec, config)
 		.then(rights => {
 			parameters = parameters || {};;
 			const baseUrl = getBaseUrl(spec);;
 			let reqInfo = { parameters, baseUrl };;
-			if (options.processRequest) {
-				reqInfo = options.processRequest(op, reqInfo);;
+			if (config.processRequest) {
+				reqInfo = config.processRequest(op, reqInfo);;
 			}
 			const req = buildRequest(op, reqInfo.baseUrl, reqInfo.parameters, rights);;
 			return makeFetchRequest(req)
-				.then(res => processResponse(req, res, attempt, options), e => processError(req, e))
+				.then(res => processResponse(req, res, attempt, config), e => processError(req, e))
 				.then(outcome => outcome.retry ? request(op, parameters, attempt + 1) : outcome.res);;
 		});;
 }

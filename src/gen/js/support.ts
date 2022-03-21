@@ -3,6 +3,9 @@ export const DEFAULT_SP = '  '
 export let SP = DEFAULT_SP
 export let ST = '' // statement terminator
 
+export const REQUEST_OPTIONS_NAME = 'requestOptions'
+export const REQUEST_OPTIONS_TYPE = '_requestOptionsType'
+
 export function applyFormatOptions(options: ClientOptions) {
   switch (`${options.indent}`) {
     case 'tab':

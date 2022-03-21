@@ -1,5 +1,5 @@
 import { writeFileSync, join } from '../util'
-import { DOC, SP, ST, getDocType, getParamTypeName, getTSParamType, formatDocDescription } from './support'
+import { DOC, SP, ST, getDocType, getParamTypeName, getTSParamType, formatDocDescription, REQUEST_OPTIONS_NAME, REQUEST_OPTIONS_TYPE } from './support'
 import { OpenAPIObject, OperationObject, ResponseObject } from 'openapi3-ts'
 import { isRequestBodyObject, isReferenceObject } from './helpers'
 
@@ -20,19 +20,74 @@ export function genTypesFile(spec: OpenAPIObject, operations: OperationObject[],
 
 function renderHeader() {
   const lines = []
-  lines.push(`/** @module types */`)
-  lines.push(`// Auto-generated, edits will be overwritten`)
-  lines.push(``)
-  lines.push(`/**`)
-  lines.push(` * Typed fetch API response. `)
-  lines.push(` * @template T`)
-  lines.push(` * @typedef $tipi$ApiResponse`)
-  lines.push(` * @property {Response} raw   raw fetch client response object`)
-  lines.push(` * @property {T} data   contains the query result`)
-  lines.push(` * @property {Error} error ServiceError if hasError is set`)
-  lines.push(` * @property {?boolean} hasError   boolean flag set if status code indicates failure`)
-  lines.push(` */`)
-  lines.push(``)
+  lines.push(
+`/** @module types */
+// Auto-generated, edits will be overwritten
+
+/**
+ * Callback which should resolve rights for a request (e.g auth token) given the OpenAPI defined security requirements of the operation to be executed.
+ * @callback getAuthorizationFn
+ * @param {OperationSecurity} security
+ * @param {any} securitySchemes
+ * @param {OperationInfo} op 
+ * @returns {Promise<OperationRightsInfo>}
+ */
+
+/**
+ * Given an error response, custom format and return a ServiceError
+ * @callback formatServiceErrorFn
+ * @param {FetchResponse} response
+ * @param {any} data
+ * @returns {ServiceError}
+ */
+
+/**
+ * @callback processRequestFn
+ * @param {OperationInfo} op
+ * @param {RequestInfo} reqInfo
+ * @returns {RequestInfo}
+ */
+
+/**
+ * @callback processResponseFn
+ * @param {ServiceRequest} req
+ * @param {Response<any>} res
+ * @param {Number} attempt
+ * @returns {Promise<ResponseOutcome>}
+ */
+
+/**
+ * @callback processErrorFn
+ * @param {ServiceRequest} req
+ * @param {ResponseOutcome} res
+ * @returns {Promise<ResponseOutcome>}
+ */
+
+/**
+ * Request options
+ * @typedef ${REQUEST_OPTIONS_TYPE}
+ * @property {string} url   The service url.
+ * @property {any} fetchOptions   Fetch options object to apply to each request e.g { mode: 'cors', credentials: true }
+ * @property {getAuthorizationFn} getAuthorization Function which should resolve rights for a request (e.g auth token) given the OpenAPI defined security requirements of the operation to be executed.
+ * @property {formatServiceErrorFn} formatServiceError  
+ * @property {processRequestFn} processRequest    Before each Fetch request is dispatched this function will be called if it's defined.
+ * @property {processResponseFn} processResponse  If you need some type of request retry behavior this function is the place to do it.
+ * @property {processErrorFn} processError        If a fetch request fails this function gives you a chance to process that error before it's returned up the promise chain to the original caller.
+ * @property {string} authorizationHeader         By default the authorization header name is "Authorization". This property allows you to override it.
+ */
+
+
+/**
+ * Typed fetch API response.
+ * @template T
+ * @typedef $tipi$ApiResponse
+ * @property {Response} raw   raw fetch client response object
+ * @property {T} data   contains the query result
+ * @property {Error} error ServiceError if hasError is set
+ * @property {?boolean} hasError   boolean flag set if status code indicates failure
+ */
+`)
+
   return lines
 }
 
