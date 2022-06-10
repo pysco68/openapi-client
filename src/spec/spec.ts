@@ -35,7 +35,7 @@ function readFile(filePath: string): Promise<string> {
 
 function parseFileContents(contents: string, path: string): OpenAPIObject {
   return /.ya?ml$/i.test(path)
-    ? YAML.safeLoad(contents) as OpenAPIObject
+    ? YAML.load(contents) as OpenAPIObject
     : JSON.parse(contents) as OpenAPIObject
 }
 
